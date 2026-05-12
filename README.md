@@ -22,7 +22,7 @@ A Chrome extension that tracks your [Scrimba](https://scrimba.com) learning prog
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/<your-username>/x-study-streak.git
+   https://github.com/Shujju5583X/twitter-extension.git
    ```
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable **Developer mode** (top-right toggle)
