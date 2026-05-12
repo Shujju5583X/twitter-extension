@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>X-Study-Streak Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #17212b;
+      color: #c5d0d8;
+      padding: 30px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    h1 { color: #e1e8eb; font-size: 24px; margin-bottom: 24px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; color: #7a8f9e; }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      background: #1e2d3a;
+      border: 1px solid #2a3f4e;
+      color: #e1e8eb;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .checkbox-group label { margin-bottom: 0; }
+    button {
+      background: #e1e8eb;
+      color: #17212b;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:hover { background: #fff; }
+    #status { margin-left: 10px; color: #4caea9; font-size: 14px; opacity: 0; transition: opacity 0.3s; }
+  </style>
+</head>
+<body>
+  <h1>Settings</h1>
+  
+  <div class="form-group">
+    <label for="hashtags">Default Hashtags</label>
+    <input type="text" id="hashtags" placeholder="#ScrimbaStudent #BuildInPublic">
+  </div>
+  
+  <div class="form-group checkbox-group">
+    <input type="checkbox" id="gracePeriod">
+    <label for="gracePeriod">Enable 1-Day Grace Period</label>
+  </div>
+  
+  <div style="margin-top: 30px;">
+    <button id="saveBtn">Save Settings</button>
+    <span id="status">Saved!</span>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

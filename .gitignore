@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE / Editor
+.vscode/
+.idea/
+.cursor/
+.windsurf/
+.clinerules/
+*.swp
+*.swo
+*~
+
+# AI Rules
+GEMINI.md
+CLAUDE.md
+.aider*
+
+# Chrome extension packaging
+*.pem
+*.crx
+*.zip
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Build output
+dist/
+build/
+
+# Gemini AI context
+.gemini/

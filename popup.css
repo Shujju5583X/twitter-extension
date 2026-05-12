@@ -1,0 +1,434 @@
+/* ============================================
+   X-Study-Streak — Popup Theme
+   Palette: #17212b (Scrimba dark blue)
+   60-30-10 Rule:
+     60% — #17212b  (dominant bg)
+     30% — #1e2d3a  (cards, surfaces)
+     10% — #e1e8eb  (accent text, highlights)
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  min-height: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #17212b;
+  color: #c5d0d8;
+}
+
+.container {
+  padding: 20px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #e1e8eb;
+}
+
+/* Streak Card */
+.streak-card {
+  text-align: center;
+  padding: 28px 16px 20px;
+  background: #1e2d3a;
+  border-radius: 16px;
+  border: 1px solid #2a3f4e;
+}
+
+.streak-number {
+  font-size: 56px;
+  font-weight: 800;
+  color: #e1e8eb;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.streak-unit {
+  font-size: 14px;
+  color: #7a8f9e;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.streak-badge {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #1a2a36;
+  color: #7a8f9e;
+}
+
+.status-active {
+  background: rgba(225, 232, 235, 0.1);
+  color: #e1e8eb;
+}
+
+.status-buffer {
+  background: rgba(225, 232, 235, 0.06);
+  color: #8fa3b0;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: #2a3f4e;
+  margin: 16px 0;
+}
+
+/* Sections */
+.xss-section {
+  margin-bottom: 4px;
+}
+
+.xss-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.xss-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c5d0d8;
+}
+
+/* Queue */
+.xss-queue-pill {
+  background: #1a2a36;
+  color: #7a8f9e;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.xss-queue-pill.xss-queue-active {
+  background: rgba(225, 232, 235, 0.12);
+  color: #e1e8eb;
+}
+
+.xss-queue-hint {
+  font-size: 12px;
+  color: #7a8f9e;
+  margin-bottom: 8px;
+}
+
+.xss-clear-btn {
+  background: transparent;
+  border: 1px solid #2a3f4e;
+  color: #7a8f9e;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.xss-clear-btn:hover {
+  border-color: #e1e8eb;
+  color: #e1e8eb;
+}
+
+.xss-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.xss-queue-list::-webkit-scrollbar {
+  width: 4px;
+}
+.xss-queue-list::-webkit-scrollbar-thumb {
+  background: #2a3f4e;
+  border-radius: 4px;
+}
+
+.xss-queue-item {
+  background: #1e2d3a;
+  border-radius: 8px;
+  padding: 8px;
+  border: 1px solid #2a3f4e;
+}
+
+.xss-queue-item textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #c5d0d8;
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 50px;
+  outline: none;
+}
+
+.xss-queue-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.xss-queue-btn {
+  background: transparent;
+  border: 1px solid #2a3f4e;
+  color: #7a8f9e;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.xss-queue-btn.save:hover {
+  border-color: #e1e8eb;
+  color: #e1e8eb;
+}
+
+.xss-queue-btn.delete:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+/* Scrimba Progress */
+.xss-synced-at {
+  font-size: 11px;
+  color: #4e6472;
+}
+
+.xss-overall-progress {
+  margin-bottom: 10px;
+}
+
+.xss-global-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1e2d3a;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #2a3f4e;
+}
+
+.xss-donut {
+  transform: rotate(-90deg);
+}
+
+.xss-donut-bg {
+  fill: transparent;
+  stroke: #2a3f4e;
+  stroke-width: 6;
+}
+
+.xss-donut-fill {
+  fill: transparent;
+  stroke: #4caea9;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.8s ease;
+}
+
+.xss-global-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xss-global-pct {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e1e8eb;
+}
+
+.xss-global-meta {
+  font-size: 12px;
+  color: #7a8f9e;
+}
+
+/* Module List */
+.xss-module-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xss-module-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.xss-module-list::-webkit-scrollbar-thumb {
+  background: #2a3f4e;
+  border-radius: 4px;
+}
+
+.xss-module-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+
+.xss-module-item:hover {
+  background: #1e2d3a;
+}
+
+.xss-mod-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  color: #7a8f9e;
+}
+
+.xss-mod-name {
+  flex: 1;
+  color: #c5d0d8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xss-mod-progress {
+  color: #7a8f9e;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.xss-mod-progress.xss-mod-done {
+  color: #e1e8eb;
+}
+
+.xss-empty-state {
+  text-align: center;
+  color: #4e6472;
+  font-size: 12px;
+  padding: 16px 0;
+}
+
+/* Multi-path styles */
+.xss-path-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 2px;
+}
+
+.xss-path-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c5d0d8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.xss-path-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e1e8eb;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.xss-path-meta {
+  font-size: 11px;
+  color: #4e6472;
+  padding: 0 8px 4px;
+}
+
+.xss-path-separator {
+  height: 1px;
+  background: #1e2d3a;
+  margin: 8px 0;
+}
+
+/* History */
+.history-section {
+  /* no extra bg — flat layout */
+}
+
+.history-header {
+  font-size: 14px;
+  font-weight: 700;
+  color: #7a8f9e;
+  margin-bottom: 12px;
+}
+
+.xss-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.xss-heatmap-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #1e2d3a;
+  border-radius: 4px;
+  position: relative;
+}
+
+.xss-heatmap-cell.level-1 { background: #2a4b4e; }
+.xss-heatmap-cell.level-2 { background: #3c7a7b; }
+.xss-heatmap-cell.level-3 { background: #4caea9; }
+.xss-heatmap-cell.level-4 { background: #60d2cc; }
+
+.xss-heatmap-tooltip {
+  visibility: hidden;
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e2d3a;
+  color: #e1e8eb;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  border: 1px solid #2a3f4e;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.xss-heatmap-cell:hover .xss-heatmap-tooltip {
+  visibility: visible;
+  opacity: 1;
+}

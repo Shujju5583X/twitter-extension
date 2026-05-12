@@ -1,0 +1,280 @@
+/* ============================================
+   X-Study-Streak — Content Script Theme
+   Palette: #f0f4f5 (blend with X / Twitter)
+   60-30-10 Rule:
+     60% — #f0f4f5  (dominant bg)
+     30% — #dce3e6  (surfaces, borders)
+     10% — #17212b  (accent text, CTA)
+   ============================================ */
+
+/* Sidebar Button */
+.study-streak-btn {
+  background: var(--xss-border, #dce3e6);
+  color: var(--xss-text, #17212b);
+  border: none;
+  border-radius: 9999px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 8px 0;
+  width: 90%;
+  transition: background 0.2s, box-shadow 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  position: relative;
+}
+
+.study-streak-btn:hover {
+  background: #c9d3d7;
+}
+
+/* Queue badge on sidebar button */
+.xss-queue-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--xss-cta-bg, #17212b);
+  color: var(--xss-cta-text, #f0f4f5);
+  font-size: 11px;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border: 2px solid var(--xss-bg, #f0f4f5);
+  animation: xssBadgePop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes xssBadgePop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* Modal Overlay */
+.study-streak-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(23, 33, 43, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+}
+
+/* Modal */
+.study-streak-modal {
+  background: var(--xss-bg, #f0f4f5);
+  color: var(--xss-text, #17212b);
+  width: 440px;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid var(--xss-border, #dce3e6);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  animation: xssModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 32px rgba(23, 33, 43, 0.18);
+}
+
+@keyframes xssModalIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Modal Header */
+.xss-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.xss-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--xss-text, #17212b);
+}
+
+.xss-queue-info {
+  font-size: 13px;
+  color: #5b6d7a;
+}
+
+.xss-queue-count {
+  background: var(--xss-input-bg, rgba(23, 33, 43, 0.08));
+  color: var(--xss-text, #17212b);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Textarea */
+.study-streak-textarea {
+  width: 100%;
+  height: 140px;
+  background: var(--xss-input-bg, #fff);
+  border: 1px solid var(--xss-border, #dce3e6);
+  border-radius: 8px;
+  color: var(--xss-text, #17212b);
+  padding: 12px;
+  font-size: 15px;
+  resize: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+}
+
+.study-streak-textarea:focus {
+  outline: none;
+  border-color: var(--xss-text, #17212b);
+}
+
+/* Counter Row */
+.xss-counter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0 16px;
+  padding: 0 4px;
+}
+
+.xss-source-label {
+  font-size: 12px;
+  color: #5b6d7a;
+}
+
+.xss-char-counter {
+  font-size: 13px;
+  color: #5b6d7a;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s;
+}
+
+.xss-char-counter.xss-over-limit {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+@keyframes xssShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+.xss-char-counter.xss-shake {
+  animation: xssShake 0.4s ease;
+}
+
+/* Actions */
+.study-streak-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.study-streak-cancel,
+.study-streak-submit,
+.xss-skip-btn {
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.study-streak-cancel {
+  background: transparent;
+  color: var(--xss-text, #17212b);
+  border: 1px solid var(--xss-border, #dce3e6);
+}
+
+.study-streak-cancel:hover {
+  background: rgba(23, 33, 43, 0.06);
+}
+
+.xss-skip-btn {
+  background: transparent;
+  color: #5b6d7a;
+  border: 1px solid var(--xss-border, #dce3e6);
+  margin-right: auto;
+}
+
+.xss-skip-btn:hover {
+  background: var(--xss-input-bg, rgba(23, 33, 43, 0.06));
+  color: var(--xss-text, #17212b);
+}
+
+.study-streak-submit {
+  background: var(--xss-cta-bg, #17212b);
+  color: var(--xss-cta-text, #f0f4f5);
+}
+
+.study-streak-submit:hover {
+  background: #1e2d3a;
+}
+
+.study-streak-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Next Post Toast */
+.xss-next-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--xss-cta-bg, #17212b);
+  color: var(--xss-cta-text, #f0f4f5);
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 24px rgba(23, 33, 43, 0.3);
+  animation: xssToastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes xssToastIn {
+  from { transform: translateX(-50%) translateY(60px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes xssToastOut {
+  from { transform: translateX(-50%) translateY(0); opacity: 1; }
+  to { transform: translateX(-50%) translateY(60px); opacity: 0; }
+}
+
+.xss-toast-action {
+  background: var(--xss-input-bg, rgba(240, 244, 245, 0.15));
+  border: none;
+  color: var(--xss-cta-text, #f0f4f5);
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.xss-toast-action:hover {
+  background: rgba(240, 244, 245, 0.25);
+}

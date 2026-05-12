@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>X-Study-Streak</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Study Streak</h1>
+    </div>
+
+    <div class="streak-card">
+      <div class="streak-number" id="streak-count">0</div>
+      <div class="streak-unit">day streak</div>
+      <div class="streak-badge" id="streak-status">Loading...</div>
+    </div>
+
+    <!-- Post Queue Section -->
+    <div class="xss-section" id="queue-section">
+      <div class="xss-section-header">
+        <span class="xss-section-title">Post Queue</span>
+        <span class="xss-queue-pill" id="queue-count">0</span>
+      </div>
+      <div class="xss-queue-hint" id="queue-hint">No posts queued</div>
+      <div id="queue-list" class="xss-queue-list"></div>
+      <button class="xss-clear-btn" id="clear-queue-btn" style="display: none;">Clear Queue</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Scrimba Progress Section -->
+    <div class="xss-section" id="scrimba-section">
+      <div class="xss-section-header">
+        <span class="xss-section-title">Scrimba Progress</span>
+        <span class="xss-synced-at" id="synced-at"></span>
+      </div>
+      <div class="xss-overall-progress" id="overall-progress"></div>
+      <div class="xss-module-list" id="module-list">
+        <div class="xss-empty-state" id="scrimba-empty">Visit Scrimba to sync progress</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="history-section">
+      <div class="history-header">Recent Activity</div>
+      <div id="heatmap-grid" class="xss-heatmap-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
