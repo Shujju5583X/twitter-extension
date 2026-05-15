@@ -432,3 +432,34 @@ body {
   visibility: visible;
   opacity: 1;
 }
+
+/* Error Toast */
+.xss-popup-error-toast {
+  background: #3a1c1c;
+  color: #f5c6c6;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 8px;
+  border: 1px solid #5c2b2b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: xssPopupToastIn 0.3s ease;
+}
+
+.xss-popup-error-toast-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.xss-popup-error-toast-msg {
+  flex: 1;
+  line-height: 1.3;
+}
+
+@keyframes xssPopupToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

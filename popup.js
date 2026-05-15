@@ -11,6 +11,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const syncedAtEl = document.getElementById('synced-at');
   const scrimbaEmptyEl = document.getElementById('scrimba-empty');
 
+  // ===================================================================
+  // Error toast helper for popup
+  // ===================================================================
+
+  function showPopupError(message, parentEl) {
+    // Remove existing toast in same parent
+    const existing = (parentEl || document.querySelector('.container')).querySelector('.xss-popup-error-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'xss-popup-error-toast';
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+      <span class="xss-popup-error-toast-icon">⚠</span>
+      <span class="xss-popup-error-toast-msg">${message}</span>
+    `;
+
+    const target = parentEl || document.querySelector('.container');
+    target.appendChild(toast);
+
+    // Auto-dismiss after 5s
+    setTimeout(() => {
+      if (toast.parentElement) toast.remove();
+    }, 5000);
+  }
+
   // --- Streak Data ---
   chrome.runtime.sendMessage({ action: 'checkStreak' }, (streakData) => {
     if (chrome.runtime.lastError || !streakData) {
@@ -18,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
       countEl.textContent = '—';
       statusEl.textContent = 'Unavailable';
       statusEl.className = 'streak-badge';
+      showPopupError("Could not load streak data: " + (chrome.runtime.lastError?.message || 'No response'));
       return;
     }
 
@@ -69,7 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Scrimba Progress ---
   chrome.runtime.sendMessage({ action: 'getScrimbaProgress' }, (data) => {
-    if (chrome.runtime.lastError || !data) return;
+    if (chrome.runtime.lastError || !data) {
+      showPopupError("Could not load Scrimba progress: " + (chrome.runtime.lastError?.message || 'No response'));
+      return;
+    }
 
     // Queue count
     queueCountEl.textContent = data.pendingPosts;
@@ -165,7 +195,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Clear queue button
   clearQueueBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: 'clearQueue' }, () => {
+    chrome.runtime.sendMessage({ action: 'clearQueue' }, (response) => {
+      if (chrome.runtime.lastError) {
+        showPopupError("Failed to clear queue: " + chrome.runtime.lastError.message);
+        return;
+      }
       queueCountEl.textContent = '0';
       queueCountEl.classList.remove('xss-queue-active');
       queueHintEl.textContent = 'Queue cleared';
@@ -177,6 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Render Queue List ---
   function loadQueue() {
     chrome.storage.local.get(['postQueue'], (data) => {
+      if (chrome.runtime.lastError) {
+        showPopupError("Failed to load queue: " + chrome.runtime.lastError.message);
+        return;
+      }
       const queue = data.postQueue || [];
       const pending = queue.filter(p => !p.posted);
       
@@ -197,7 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.className = 'xss-queue-btn save';
         saveBtn.textContent = 'Save';
         saveBtn.addEventListener('click', () => {
-          chrome.runtime.sendMessage({ action: 'updatePost', postId: post.id, text: textarea.value }, () => {
+          chrome.runtime.sendMessage({ action: 'updatePost', postId: post.id, text: textarea.value }, (response) => {
+            if (chrome.runtime.lastError) {
+              showPopupError("Failed to save: " + chrome.runtime.lastError.message);
+              return;
+            }
             saveBtn.textContent = 'Saved!';
             setTimeout(() => saveBtn.textContent = 'Save', 1500);
           });
@@ -207,7 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
         delBtn.className = 'xss-queue-btn delete';
         delBtn.textContent = 'Delete';
         delBtn.addEventListener('click', () => {
-          chrome.runtime.sendMessage({ action: 'deletePost', postId: post.id }, () => {
+          chrome.runtime.sendMessage({ action: 'deletePost', postId: post.id }, (response) => {
+            if (chrome.runtime.lastError) {
+              showPopupError("Failed to delete: " + chrome.runtime.lastError.message);
+              return;
+            }
             item.remove();
             // Update counter locally
             const c = parseInt(queueCountEl.textContent) - 1;

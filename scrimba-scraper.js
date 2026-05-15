@@ -1,8 +1,46 @@
 // scrimba-scraper.js — Content script for Scrimba frontend path
 console.log("X-Study-Streak: Scrimba scraper loaded.");
 
+// ===================================================================
+// Utility: fallback selector queries
+// ===================================================================
+
 /**
- * Parse the Scrimba frontend path page DOM to extract
+ * Try multiple selectors in order via querySelectorAll, return first non-empty NodeList.
+ */
+function queryAllFallback(...selectors) {
+  for (const sel of selectors) {
+    try {
+      const els = document.querySelectorAll(sel);
+      if (els.length > 0) return els;
+    } catch {
+      // Invalid selector — skip
+    }
+  }
+  return [];
+}
+
+/**
+ * Try multiple selectors scoped to a parent element, return first match.
+ */
+function queryScopedFallback(parent, ...selectors) {
+  for (const sel of selectors) {
+    try {
+      const el = parent.querySelector(sel);
+      if (el) return el;
+    } catch {
+      // Invalid selector — skip
+    }
+  }
+  return null;
+}
+
+// ===================================================================
+// Scraping logic
+// ===================================================================
+
+/**
+ * Parse the Scrimba path page DOM to extract
  * module and individual lesson completion data.
  */
 function scrapeProgress() {
@@ -15,13 +53,24 @@ function scrapeProgress() {
     scrapedAt: new Date().toISOString()
   };
 
-  // --- Parse modules/sub-modules from toc-item-head elements ---
-  const moduleHeaders = document.querySelectorAll('toc-item-head');
+  // --- Parse modules/sub-modules — fallback selectors ---
+  const moduleHeaders = queryAllFallback(
+    'toc-item-head',
+    '[class*="toc-item-head"]',
+    '[class*="module-header"]',
+    '[data-type="chapter"]'
+  );
+
   moduleHeaders.forEach(header => {
     const textContent = header.textContent.trim();
 
-    // Extract title — first meaningful text block
-    const titleEl = header.querySelector('div > div');
+    // Extract title — fallback selectors for title element
+    const titleEl = queryScopedFallback(
+      header,
+      'div > div',
+      ':scope > [class*="title"]',
+      ':scope > span'
+    );
     if (!titleEl) return;
     const title = titleEl.textContent.trim();
     if (!title) return;
@@ -46,14 +95,25 @@ function scrapeProgress() {
     }
   });
 
-  // --- Parse individual lessons from toc-scrim-item elements ---
-  const lessonItems = document.querySelectorAll('toc-scrim-item');
+  // --- Parse individual lessons — fallback selectors ---
+  const lessonItems = queryAllFallback(
+    'toc-scrim-item',
+    '[class*="toc-scrim-item"]',
+    '[class*="lesson-item"]',
+    '[data-type="scrim"]'
+  );
+
   lessonItems.forEach(item => {
     const isCompleted = item.classList.contains('completed');
     const isGated = item.classList.contains('gated');
 
-    // Get lesson title
-    const titleEl = item.querySelector('div > div');
+    // Get lesson title — fallback selectors
+    const titleEl = queryScopedFallback(
+      item,
+      'div > div',
+      ':scope > [class*="title"]',
+      ':scope > span'
+    );
     if (!titleEl) return;
     const title = titleEl.textContent.trim();
     if (!title) return;
@@ -77,19 +137,36 @@ function scrapeProgress() {
  * which is the parent module/sub-module for this lesson.
  */
 function findParentModuleName(lessonEl) {
+  const headerTags = ['toc-item-head'];
+  const headerSelectors = ['toc-item-head', '[class*="toc-item-head"]', '[class*="module-header"]'];
+
   let el = lessonEl.previousElementSibling;
   while (el) {
-    if (el.tagName && el.tagName.toLowerCase() === 'toc-item-head') {
-      const titleEl = el.querySelector('div > div');
+    // Check if element itself is a header
+    if (el.tagName && headerTags.includes(el.tagName.toLowerCase())) {
+      const titleEl = queryScopedFallback(el, 'div > div', ':scope > [class*="title"]', ':scope > span');
       if (titleEl) return titleEl.textContent.trim();
     }
-    // Also check parent containers
-    if (el.querySelector && el.querySelector('toc-item-head')) {
-      const headers = el.querySelectorAll('toc-item-head');
-      if (headers.length > 0) {
-        const last = headers[headers.length - 1];
-        const titleEl = last.querySelector('div > div');
-        if (titleEl) return titleEl.textContent.trim();
+    // Also check for header selectors via class
+    for (const sel of headerSelectors) {
+      try {
+        if (el.matches && el.matches(sel)) {
+          const titleEl = queryScopedFallback(el, 'div > div', ':scope > [class*="title"]', ':scope > span');
+          if (titleEl) return titleEl.textContent.trim();
+        }
+      } catch { /* skip invalid */ }
+    }
+    // Check children for headers
+    if (el.querySelector) {
+      for (const sel of headerSelectors) {
+        try {
+          const headers = el.querySelectorAll(sel);
+          if (headers.length > 0) {
+            const last = headers[headers.length - 1];
+            const titleEl = queryScopedFallback(last, 'div > div', ':scope > [class*="title"]', ':scope > span');
+            if (titleEl) return titleEl.textContent.trim();
+          }
+        } catch { /* skip */ }
       }
     }
     el = el.previousElementSibling;
@@ -98,10 +175,14 @@ function findParentModuleName(lessonEl) {
   // Try parent's context
   const parent = lessonEl.parentElement;
   if (parent) {
-    const parentHeader = parent.querySelector('toc-item-head');
-    if (parentHeader) {
-      const titleEl = parentHeader.querySelector('div > div');
-      if (titleEl) return titleEl.textContent.trim();
+    for (const sel of headerSelectors) {
+      try {
+        const parentHeader = parent.querySelector(sel);
+        if (parentHeader) {
+          const titleEl = queryScopedFallback(parentHeader, 'div > div', ':scope > [class*="title"]', ':scope > span');
+          if (titleEl) return titleEl.textContent.trim();
+        }
+      } catch { /* skip */ }
     }
   }
 
@@ -130,47 +211,85 @@ function extractPathInfo() {
   return { pathId, pathName };
 }
 
+// ===================================================================
+// MutationObserver-based wait (replaces setInterval polling)
+// ===================================================================
+
 /**
- * Wait for SPA content to load, then scrape and send to background.
- * Scrimba is a SPA — DOM may not be ready immediately.
+ * Check if any TOC content elements exist in DOM.
+ */
+function hasTocContent() {
+  return queryAllFallback(
+    'toc-item-head',
+    '[class*="toc-item-head"]',
+    '[class*="module-header"]',
+    '[data-type="chapter"]'
+  ).length > 0;
+}
+
+/**
+ * Wait for SPA content to load via MutationObserver, then scrape and send to background.
+ * Replaces setInterval polling — fires only on actual DOM changes.
  */
 function waitAndScrape() {
-  let attempts = 0;
-  const maxAttempts = 30; // 15 seconds max
+  // If content already present, scrape immediately
+  if (hasTocContent()) {
+    performScrape();
+    return;
+  }
 
-  const interval = setInterval(() => {
-    attempts++;
-    const headers = document.querySelectorAll('toc-item-head');
+  // Observe DOM for TOC elements appearing
+  let resolved = false;
 
-    if (headers.length > 0 || attempts >= maxAttempts) {
-      clearInterval(interval);
+  const contentObserver = new MutationObserver(() => {
+    if (resolved) return;
+    if (hasTocContent()) {
+      resolved = true;
+      contentObserver.disconnect();
+      performScrape();
+    }
+  });
 
-      if (headers.length === 0) {
+  contentObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Safety timeout: 15s max, then disconnect and bail
+  setTimeout(() => {
+    if (!resolved) {
+      resolved = true;
+      contentObserver.disconnect();
+      // Check one last time
+      if (hasTocContent()) {
+        performScrape();
+      } else {
         console.log("X-Study-Streak: No Scrimba content found after waiting.");
+      }
+    }
+  }, 15000);
+}
+
+/**
+ * Execute scrape and send results to background.
+ */
+function performScrape() {
+  const progress = scrapeProgress();
+  console.log("X-Study-Streak: Scraped progress:", progress);
+
+  // Send to background script
+  chrome.runtime.sendMessage(
+    { action: 'scrimbaProgress', data: progress },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn("X-Study-Streak: Failed to send progress:", chrome.runtime.lastError.message);
         return;
       }
+      console.log("X-Study-Streak: Background processed progress:", response);
 
-      const progress = scrapeProgress();
-      console.log("X-Study-Streak: Scraped progress:", progress);
-
-      // Send to background script
-      chrome.runtime.sendMessage(
-        { action: 'scrimbaProgress', data: progress },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            console.warn("X-Study-Streak: Failed to send progress:", chrome.runtime.lastError.message);
-            return;
-          }
-          console.log("X-Study-Streak: Background processed progress:", response);
-
-          // Show notification banner on Scrimba page
-          if (response && response.newCompletions && response.newCompletions.length > 0) {
-            showScrimbaNotification(response.newCompletions.length, response.queuedPosts);
-          }
-        }
-      );
+      // Show notification banner on Scrimba page
+      if (response && response.newCompletions && response.newCompletions.length > 0) {
+        showScrimbaNotification(response.newCompletions.length, response.queuedPosts);
+      }
     }
-  }, 500);
+  );
 }
 
 /**
@@ -184,13 +303,14 @@ function showScrimbaNotification(newCount, queuedCount) {
 
   const banner = document.createElement('div');
   banner.className = 'xss-scrimba-notification';
+  banner.setAttribute('role', 'alert');
   banner.innerHTML = `
     <div class="xss-notif-icon">S</div>
     <div class="xss-notif-text">
       <strong>${newCount} new completion${newCount > 1 ? 's' : ''} detected!</strong>
       <span>${queuedCount} post${queuedCount !== 1 ? 's' : ''} queued for X</span>
     </div>
-    <button class="xss-notif-close">✕</button>
+    <button class="xss-notif-close" aria-label="Dismiss notification">✕</button>
   `;
 
   // Style inline for scrimba.com (no separate CSS injected here to keep it minimal)
@@ -257,6 +377,10 @@ function showScrimbaNotification(newCount, queuedCount) {
   }, 8000);
 }
 
+// ===================================================================
+// SPA navigation detection
+// ===================================================================
+
 // Track state to avoid duplicate scrapes
 let lastScrapedUrl = null;
 let isScraping = false;
@@ -267,8 +391,6 @@ function guardedScrape() {
   isScraping = true;
   lastScrapedUrl = currentUrl;
 
-  // Wrap waitAndScrape to reset lock when done
-  const origWait = waitAndScrape;
   waitAndScrape();
   // Reset lock after scrape window (max 15s + buffer)
   setTimeout(() => { isScraping = false; }, 18000);

@@ -10,6 +10,63 @@ function isContextValid() {
   }
 }
 
+// ===================================================================
+// Utility: fallback selector queries
+// ===================================================================
+
+/**
+ * Try multiple selectors in order, return first match.
+ * Handles fragile DOM selectors when X updates its markup.
+ */
+function queryFallback(...selectors) {
+  for (const sel of selectors) {
+    try {
+      const el = document.querySelector(sel);
+      if (el) return el;
+    } catch {
+      // Invalid selector — skip
+    }
+  }
+  return null;
+}
+
+// ===================================================================
+// Error toast for user-visible errors
+// ===================================================================
+
+function showErrorToast(message) {
+  const existing = document.querySelector('.xss-error-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'xss-error-toast';
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.innerHTML = `
+    <span class="xss-error-toast-icon">⚠</span>
+    <span class="xss-error-toast-msg">${message}</span>
+    <button class="xss-error-toast-close" aria-label="Dismiss error">✕</button>
+  `;
+
+  document.body.appendChild(toast);
+
+  toast.querySelector('.xss-error-toast-close').addEventListener('click', () => {
+    toast.style.animation = 'xssToastOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  });
+
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.animation = 'xssToastOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 5000);
+}
+
+// ===================================================================
+// State
+// ===================================================================
+
 let streakData = null;
 let currentQueuePost = null;
 
@@ -17,13 +74,17 @@ let currentQueuePost = null;
 chrome.runtime.sendMessage({ action: 'checkStreak' }, (response) => {
   if (chrome.runtime.lastError) {
     console.warn("X-Study-Streak: Could not reach background:", chrome.runtime.lastError.message);
+    showErrorToast("Could not connect to extension background. Try reloading.");
     return;
   }
   console.log("X-Study-Streak: Current streak status:", response);
   streakData = response;
 });
 
-// Check queue for badge
+// ===================================================================
+// Queue badge
+// ===================================================================
+
 function updateButtonBadge() {
   if (!isContextValid()) return;
   chrome.runtime.sendMessage({ action: 'getNextPost' }, (response) => {
@@ -47,34 +108,98 @@ function updateButtonBadge() {
   });
 }
 
+// ===================================================================
+// React-compatible tweet posting
+// ===================================================================
+
 async function postTweetDirectly(text) {
   try {
-    const newTweetBtn = document.querySelector('[data-testid="SideNav_NewTweet_Button"]');
-    if (!newTweetBtn) return false;
+    // Open compose dialog — fallback selectors
+    const newTweetBtn = queryFallback(
+      '[data-testid="SideNav_NewTweet_Button"]',
+      '[aria-label="Post"]',
+      '[aria-label="Compose post"]',
+      '[href="/compose/tweet"]',
+      'a[aria-label="Post"]'
+    );
+    if (!newTweetBtn) {
+      showErrorToast("Could not find compose button. X may have updated.");
+      return false;
+    }
     newTweetBtn.click();
-    
+
+    // Wait for compose dialog textarea
     let textarea = null;
     for (let i = 0; i < 20; i++) {
       await new Promise(r => setTimeout(r, 100));
-      textarea = document.querySelector('[role="dialog"] [data-testid="tweetTextarea_0"]');
+      textarea = queryFallback(
+        '[role="dialog"] [data-testid="tweetTextarea_0"]',
+        '[role="dialog"] [contenteditable="true"]',
+        '[data-testid="tweetTextarea_0"]',
+        '[role="dialog"] .public-DraftEditor-content'
+      );
       if (textarea) break;
     }
-    if (!textarea) return false;
-    
+    if (!textarea) {
+      showErrorToast("Compose dialog did not open. Try posting manually.");
+      return false;
+    }
+
     textarea.focus();
-    document.execCommand('insertText', false, text);
+
+    // Primary: ClipboardEvent paste (React-compatible, non-deprecated)
+    let inputSuccess = false;
+    try {
+      const dt = new DataTransfer();
+      dt.setData('text/plain', text);
+      const pasteEvent = new ClipboardEvent('paste', {
+        clipboardData: dt,
+        bubbles: true,
+        cancelable: true,
+      });
+      textarea.dispatchEvent(pasteEvent);
+
+      // Verify text was inserted
+      await new Promise(r => setTimeout(r, 200));
+      const currentText = textarea.textContent || textarea.innerText || '';
+      if (currentText.includes(text.substring(0, 20))) {
+        inputSuccess = true;
+      }
+    } catch (e) {
+      console.warn("X-Study-Streak: ClipboardEvent paste failed:", e);
+    }
+
+    // Fallback: deprecated execCommand (belt-and-suspenders)
+    if (!inputSuccess) {
+      console.warn("X-Study-Streak: Using deprecated execCommand as fallback");
+      document.execCommand('insertText', false, text);
+    }
+
     await new Promise(r => setTimeout(r, 500));
-    
-    const postBtn = document.querySelector('[role="dialog"] [data-testid="tweetButton"]');
+
+    // Click post button — fallback selectors
+    const postBtn = queryFallback(
+      '[role="dialog"] [data-testid="tweetButton"]',
+      '[role="dialog"] [data-testid="tweetButtonInline"]',
+      '[role="dialog"] button[data-testid="tweetButton"]',
+      '[role="dialog"] [type="submit"]'
+    );
     if (postBtn) {
       postBtn.click();
       return true;
+    } else {
+      showErrorToast("Could not find post button. Try posting manually.");
     }
   } catch (e) {
     console.error("Direct post failed:", e);
+    showErrorToast("Post failed: " + e.message);
   }
   return false;
 }
+
+// ===================================================================
+// Theme sync
+// ===================================================================
 
 function syncTheme() {
   const bgStr = window.getComputedStyle(document.body).backgroundColor;
@@ -82,7 +207,7 @@ function syncTheme() {
   if (!rgb) return;
   const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
   const isDark = brightness < 128;
-  
+
   const root = document.documentElement;
   if (isDark) {
     root.style.setProperty('--xss-bg', bgStr); // match exactly
@@ -101,22 +226,31 @@ function syncTheme() {
   }
 }
 
+// ===================================================================
+// Modal with ARIA
+// ===================================================================
+
 function createModal() {
   syncTheme();
   if (document.querySelector('.study-streak-modal-overlay')) return;
 
   const overlay = document.createElement('div');
   overlay.className = 'study-streak-modal-overlay';
-  
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'xss-modal-title');
+
   const modal = document.createElement('div');
   modal.className = 'study-streak-modal';
-  
+  modal.setAttribute('tabindex', '-1');
+
   // Header row
   const headerRow = document.createElement('div');
   headerRow.className = 'xss-modal-header';
 
   const title = document.createElement('h2');
   title.textContent = 'Share Study Progress';
+  title.id = 'xss-modal-title';
 
   const queueInfo = document.createElement('div');
   queueInfo.className = 'xss-queue-info';
@@ -125,10 +259,11 @@ function createModal() {
 
   headerRow.appendChild(title);
   headerRow.appendChild(queueInfo);
-  
+
   const textarea = document.createElement('textarea');
   textarea.className = 'study-streak-textarea';
   textarea.id = 'xss-tweet-textarea';
+  textarea.setAttribute('aria-label', 'Tweet content');
   textarea.value = 'Today I studied: \n';
 
   // Character counter
@@ -138,6 +273,8 @@ function createModal() {
   const charCounter = document.createElement('span');
   charCounter.className = 'xss-char-counter';
   charCounter.id = 'xss-char-counter';
+  charCounter.setAttribute('role', 'status');
+  charCounter.setAttribute('aria-live', 'polite');
 
   const sourceLabel = document.createElement('span');
   sourceLabel.className = 'xss-source-label';
@@ -145,7 +282,7 @@ function createModal() {
 
   counterRow.appendChild(sourceLabel);
   counterRow.appendChild(charCounter);
-  
+
   const actions = document.createElement('div');
   actions.className = 'study-streak-actions';
 
@@ -153,15 +290,18 @@ function createModal() {
   skipBtn.className = 'xss-skip-btn';
   skipBtn.id = 'xss-skip-btn';
   skipBtn.textContent = 'Skip';
+  skipBtn.setAttribute('aria-label', 'Skip to next queued post');
   skipBtn.style.display = 'none';
-  
+
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'study-streak-cancel';
   cancelBtn.textContent = 'Cancel';
-  
+  cancelBtn.setAttribute('aria-label', 'Cancel and close');
+
   const submitBtn = document.createElement('button');
   submitBtn.className = 'study-streak-submit';
   submitBtn.textContent = 'Post';
+  submitBtn.setAttribute('aria-label', 'Post tweet');
 
   actions.appendChild(skipBtn);
   actions.appendChild(cancelBtn);
@@ -173,6 +313,18 @@ function createModal() {
   modal.appendChild(actions);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+
+  // Focus modal on open
+  modal.focus();
+
+  // Escape key closes modal
+  function handleEscape(e) {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', handleEscape);
+    }
+  }
+  document.addEventListener('keydown', handleEscape);
 
   // Update character counter
   function updateCounter() {
@@ -191,6 +343,9 @@ function createModal() {
   chrome.runtime.sendMessage({ action: 'getNextPost' }, (response) => {
     if (chrome.runtime.lastError || !response) {
       queueInfo.textContent = '';
+      if (chrome.runtime.lastError) {
+        showErrorToast("Failed to load post queue: " + chrome.runtime.lastError.message);
+      }
       updateCounter();
       textarea.focus();
       return;
@@ -222,16 +377,25 @@ function createModal() {
   });
 
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.remove();
+    if (e.target === overlay) {
+      overlay.remove();
+      document.removeEventListener('keydown', handleEscape);
+    }
   });
-  cancelBtn.addEventListener('click', () => overlay.remove());
+  cancelBtn.addEventListener('click', () => {
+    overlay.remove();
+    document.removeEventListener('keydown', handleEscape);
+  });
 
   // Skip to next post
   skipBtn.addEventListener('click', () => {
     if (!currentQueuePost) return;
 
     chrome.runtime.sendMessage({ action: 'markPostDone', postId: currentQueuePost.id }, (response) => {
-      if (chrome.runtime.lastError || !response) return;
+      if (chrome.runtime.lastError || !response) {
+        showErrorToast("Failed to skip post: " + (chrome.runtime.lastError?.message || 'Unknown error'));
+        return;
+      }
 
       if (response.post) {
         currentQueuePost = response.post;
@@ -259,7 +423,7 @@ function createModal() {
       textarea.focus();
     });
   });
-  
+
   submitBtn.addEventListener('click', async () => {
     const content = textarea.value.trim();
     if (!content) return;
@@ -276,10 +440,11 @@ function createModal() {
     if (currentQueuePost) {
       chrome.runtime.sendMessage({ action: 'markPostDone', postId: currentQueuePost.id });
     }
-    
+
     chrome.runtime.sendMessage({ action: 'postSuccess', content: content }, async (response) => {
       if (chrome.runtime.lastError) {
         console.error("X-Study-Streak: Failed to update streak:", chrome.runtime.lastError.message);
+        showErrorToast("Failed to update streak: " + chrome.runtime.lastError.message);
         submitBtn.disabled = false;
         submitBtn.textContent = 'Post';
         return;
@@ -287,7 +452,7 @@ function createModal() {
 
       streakData = response;
       const tweetText = content;
-      
+
       const success = await postTweetDirectly(tweetText);
       if (!success) {
         // Fallback to Intent URL if direct post fails
@@ -297,17 +462,22 @@ function createModal() {
 
       // Check if there's a next queued post
       chrome.runtime.sendMessage({ action: 'getNextPost' }, (nextResponse) => {
+        if (chrome.runtime.lastError) return;
         if (nextResponse && nextResponse.post) {
-          // Show "next post ready" notification
           showNextPostNotification(nextResponse.remaining);
         }
       });
 
       overlay.remove();
+      document.removeEventListener('keydown', handleEscape);
       updateButtonBadge();
     });
   });
 }
+
+// ===================================================================
+// Next-post toast
+// ===================================================================
 
 /**
  * Show a small toast when there are more queued posts after posting.
@@ -338,18 +508,26 @@ function showNextPostNotification(remaining) {
   }, 6000);
 }
 
+// ===================================================================
+// Button injection with fallback selectors
+// ===================================================================
+
 function injectButton() {
   syncTheme();
-  // Try to find the left sidebar nav
-  const navSelector = '[data-testid="SideNav_AccountSwitcher_Button"]';
-  const navContainer = document.querySelector(navSelector)?.parentElement;
-  
+  // Try multiple selectors for sidebar anchor
+  const navAnchor = queryFallback(
+    '[data-testid="SideNav_AccountSwitcher_Button"]',
+    'nav[role="navigation"] [data-testid="AppTabBar_Profile_Link"]',
+    'nav[role="navigation"] > div:last-child > div:last-child'
+  );
+  const navContainer = navAnchor?.parentElement;
+
   if (navContainer && !document.querySelector('.study-streak-btn')) {
     const btn = document.createElement('button');
     btn.className = 'study-streak-btn';
     btn.innerHTML = 'Study Streak';
     btn.addEventListener('click', createModal);
-    
+
     // Insert above the account switcher
     navContainer.parentNode.insertBefore(btn, navContainer);
 
